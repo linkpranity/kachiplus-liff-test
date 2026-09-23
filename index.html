@@ -106,22 +106,18 @@
       color: #fff;
     }
 
-    #submitButton:disabled {
-      cursor: default;
+    #submitButton.processing,
+    #submitButton.processing:disabled {
+      background: #9ca3af !important;
+      color: #fff !important;
+      opacity: 1 !important;
     }
 
-    /* 登録中 */
-    #submitButton.processing {
-      background: #9ca3af;
-      color: #fff;
-      opacity: 1;
-    }
-
-    /* 登録受付完了 */
-    #submitButton.completed {
-      background: #16a34a;
-      color: #fff;
-      opacity: 1;
+    #submitButton.completed,
+    #submitButton.completed:disabled {
+      background: #16a34a !important;
+      color: #fff !important;
+      opacity: 1 !important;
     }
 
     #status {
@@ -239,8 +235,7 @@
 
 <script>
 
-  const LIFF_ID =
-    '2011714338-VDSzUV5O';
+  const LIFF_ID = '2011714338-VDSzUV5O';
 
   const GAS_URL =
     'https://script.google.com/macros/s/AKfycbzE370qoE0zlHjURKUQgmdzimTGT06hY74YMS4-r9jsO2R8oPCCGMl5tTe-n7KwKxacUg/exec';
@@ -256,9 +251,9 @@
     document.getElementById('status');
 
 
-  /* ==============================
+  /* =========================
      LINE認証
-     ============================== */
+     ========================= */
 
   async function initializeLiff() {
 
@@ -273,6 +268,7 @@
         liffId: LIFF_ID
       });
 
+
       if (!liff.isLoggedIn()) {
 
         liff.login({
@@ -282,16 +278,21 @@
         return;
       }
 
+
       const idToken =
         liff.getIDToken();
 
+
       if (!idToken) {
+
         throw new Error(
           'LINE認証情報を取得できませんでした。'
         );
       }
 
+
       clearStatus();
+
 
     } catch (error) {
 
@@ -300,19 +301,21 @@
         error
       );
 
+
       setStatus(
         'LINE認証に失敗しました。LINEからもう一度開いてください。',
         'error'
       );
+
 
       submitButton.disabled = true;
     }
   }
 
 
-  /* ==============================
+  /* =========================
      初回登録
-     ============================== */
+     ========================= */
 
   form.addEventListener(
     'submit',
@@ -320,17 +323,20 @@
 
       event.preventDefault();
 
+
       const fullName =
         document
           .getElementById('fullName')
           .value
           .trim();
 
+
       const department =
         document
           .getElementById('department')
           .value
           .trim();
+
 
       const position =
         document
@@ -363,16 +369,32 @@
 
       try {
 
-        /* 登録中表示 */
+        /* -------------------------
+           登録中
+           ------------------------- */
 
         submitButton.disabled = true;
 
-        submitButton.textContent =
-          '登録中...';
+        submitButton.classList.remove(
+          'completed'
+        );
 
         submitButton.classList.add(
           'processing'
         );
+
+        submitButton.textContent =
+          '登録中...';
+
+        /*
+         * 色をJS側でも明示
+         */
+        submitButton.style.backgroundColor =
+          '#9ca3af';
+
+        submitButton.style.color =
+          '#ffffff';
+
 
         setStatus(
           '登録処理を行っています...',
@@ -392,7 +414,9 @@
         }
 
 
-        /* GASへ送信 */
+        /* -------------------------
+           GASへ送信
+           ------------------------- */
 
         await fetch(
           GAS_URL,
@@ -417,7 +441,9 @@
         );
 
 
-        /* 登録受付完了 */
+        /* -------------------------
+           登録受付完了
+           ------------------------- */
 
         submitButton.classList.remove(
           'processing'
@@ -427,8 +453,23 @@
           'completed'
         );
 
+
         submitButton.textContent =
           '✓ 登録受付完了';
+
+
+        /*
+         * 完了時は必ず緑
+         */
+        submitButton.style.backgroundColor =
+          '#16a34a';
+
+        submitButton.style.color =
+          '#ffffff';
+
+        submitButton.style.opacity =
+          '1';
+
 
         setStatus(
           '✓ 登録を受け付けました。\n登録完了のLINEメッセージをご確認ください。',
@@ -436,13 +477,17 @@
         );
 
 
-        /* 二重送信防止 */
-
+        /*
+         * 入力欄を固定
+         */
         form
           .querySelectorAll('input')
           .forEach(function(input) {
+
             input.disabled = true;
+
           });
+
 
         submitButton.disabled = true;
 
@@ -454,14 +499,23 @@
           error
         );
 
+
         submitButton.classList.remove(
           'processing'
         );
 
-        submitButton.disabled = false;
+
+        submitButton.style.backgroundColor =
+          '#222222';
+
+
+        submitButton.disabled =
+          false;
+
 
         submitButton.textContent =
           '登録する';
+
 
         setStatus(
           '登録情報を送信できませんでした。通信環境をご確認のうえ、もう一度お試しください。',
@@ -472,7 +526,14 @@
   );
 
 
-  function setStatus(message, type) {
+  /* =========================
+     メッセージ表示
+     ========================= */
+
+  function setStatus(
+    message,
+    type
+  ) {
 
     statusBox.textContent =
       message;
@@ -484,11 +545,17 @@
 
   function clearStatus() {
 
-    statusBox.textContent = '';
+    statusBox.textContent =
+      '';
 
-    statusBox.className = '';
+    statusBox.className =
+      '';
   }
 
+
+  /* =========================
+     起動
+     ========================= */
 
   initializeLiff();
 
