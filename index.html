@@ -117,7 +117,7 @@
       padding: 14px;
       border-radius: 9px;
       font-size: 14px;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     #status.success {
@@ -179,7 +179,6 @@
 
       </div>
 
-
       <div class="field">
 
         <label for="department">
@@ -196,7 +195,6 @@
 
       </div>
 
-
       <div class="field">
 
         <label for="position">
@@ -212,7 +210,6 @@
 
       </div>
 
-
       <button
         type="submit"
         id="submitButton"
@@ -222,9 +219,7 @@
 
     </form>
 
-
     <div id="status"></div>
-
 
     <div class="notice">
       ご登録いただいた情報は、
@@ -283,15 +278,9 @@
         'loading'
       );
 
-
       await liff.init({
         liffId: LIFF_ID
       });
-
-
-      /*
-       * LINEログインされていない場合
-       */
 
       if (!liff.isLoggedIn()) {
 
@@ -301,29 +290,19 @@
         });
 
         return;
-
       }
-
-
-      /*
-       * IDトークン取得可能か確認
-       */
 
       const idToken =
         liff.getIDToken();
-
 
       if (!idToken) {
 
         throw new Error(
           'LINE認証情報を取得できませんでした。'
         );
-
       }
 
-
       clearStatus();
-
 
     } catch (error) {
 
@@ -332,24 +311,19 @@
         error
       );
 
-
       setStatus(
         'LINE認証に失敗しました。LINEからもう一度開いてください。',
         'error'
       );
 
-
-      submitButton.disabled =
-        true;
-
+      submitButton.disabled = true;
     }
-
   }
 
 
   /*
    * ==========================================
-   * 登録送信
+   * 初回登録
    * ==========================================
    */
 
@@ -359,30 +333,21 @@
 
       event.preventDefault();
 
-
       const fullName =
         document
-          .getElementById(
-            'fullName'
-          )
+          .getElementById('fullName')
           .value
           .trim();
-
 
       const department =
         document
-          .getElementById(
-            'department'
-          )
+          .getElementById('department')
           .value
           .trim();
 
-
       const position =
         document
-          .getElementById(
-            'position'
-          )
+          .getElementById('position')
           .value
           .trim();
 
@@ -395,7 +360,6 @@
         );
 
         return;
-
       }
 
 
@@ -407,18 +371,15 @@
         );
 
         return;
-
       }
 
 
       try {
 
-        submitButton.disabled =
-          true;
+        submitButton.disabled = true;
 
         submitButton.textContent =
           '登録中...';
-
 
         setStatus(
           '登録処理を行っています...',
@@ -427,10 +388,7 @@
 
 
         /*
-         * 生のIDトークンを取得
-         *
-         * LINE User IDそのものを
-         * ブラウザからGASへ送らない。
+         * LINE IDトークン取得
          */
 
         const idToken =
@@ -442,91 +400,62 @@
           throw new Error(
             'LINE認証情報を取得できませんでした。'
           );
-
         }
 
 
         /*
          * GASへ登録データ送信
+         *
+         * Google Apps ScriptのWebアプリは
+         * ContentServiceレスポンス時に
+         * 別ドメインへリダイレクトされるため、
+         * ブラウザ側ではレスポンス本文を待たない。
+         *
+         * 実際の登録完了は、
+         * GASから送信される
+         * 「登録完了LINE」で確認する。
          */
 
-        const response =
-          await fetch(
-            GAS_URL,
-            {
+        await fetch(
+          GAS_URL,
+          {
+            method: 'POST',
 
-              method: 'POST',
+            mode: 'no-cors',
 
-              headers: {
-                'Content-Type':
-                  'text/plain;charset=utf-8'
-              },
+            headers: {
+              'Content-Type':
+                'text/plain;charset=utf-8'
+            },
 
-              body:
-                JSON.stringify({
+            body:
+              JSON.stringify({
 
-                  fullName:
-                    fullName,
+                fullName:
+                  fullName,
 
-                  department:
-                    department,
+                department:
+                  department,
 
-                  position:
-                    position,
+                position:
+                  position,
 
-                  idToken:
-                    idToken
+                idToken:
+                  idToken
 
-                })
-
-            }
-          );
-
-
-        if (!response.ok) {
-
-          throw new Error(
-            'サーバーとの通信に失敗しました。'
-          );
-
-        }
-
-
-        const result =
-          await response.json();
-
-
-        if (!result.ok) {
-
-          throw new Error(
-            result.message ||
-            '登録できませんでした。'
-          );
-
-        }
+              })
+          }
+        );
 
 
         /*
-         * 登録成功
+         * 送信完了
          */
 
-        if (
-          result.alreadyRegistered
-        ) {
-
-          setStatus(
-            'すでに初回登録は完了しています。カチプラスをご利用いただけます。',
-            'success'
-          );
-
-        } else {
-
-          setStatus(
-            '登録が完了しました。カチプラスをご利用いただけます。',
-            'success'
-          );
-
-        }
+        setStatus(
+          '登録を受け付けました。登録完了のLINEメッセージをご確認ください。',
+          'success'
+        );
 
 
         /*
@@ -534,19 +463,16 @@
          */
 
         form
-          .querySelectorAll(
-            'input'
-          )
+          .querySelectorAll('input')
           .forEach(function(input) {
 
-            input.disabled =
-              true;
+            input.disabled = true;
 
           });
 
 
         submitButton.textContent =
-          '登録完了';
+          '登録受付完了';
 
         submitButton.disabled =
           true;
@@ -561,8 +487,7 @@
 
 
         setStatus(
-          error.message ||
-          '登録処理中にエラーが発生しました。',
+          '登録情報を送信できませんでした。通信環境をご確認のうえ、もう一度お試しください。',
           'error'
         );
 
@@ -572,9 +497,7 @@
 
         submitButton.textContent =
           '登録する';
-
       }
-
     }
   );
 
@@ -595,7 +518,6 @@
 
     statusBox.className =
       type;
-
   }
 
 
@@ -606,7 +528,6 @@
 
     statusBox.className =
       '';
-
   }
 
 
