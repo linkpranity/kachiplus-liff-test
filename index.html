@@ -107,8 +107,21 @@
     }
 
     #submitButton:disabled {
-      opacity: 0.55;
       cursor: default;
+    }
+
+    /* 登録中 */
+    #submitButton.processing {
+      background: #9ca3af;
+      color: #fff;
+      opacity: 1;
+    }
+
+    /* 登録受付完了 */
+    #submitButton.completed {
+      background: #16a34a;
+      color: #fff;
+      opacity: 1;
     }
 
     #status {
@@ -118,24 +131,29 @@
       border-radius: 9px;
       font-size: 14px;
       line-height: 1.7;
-    }
-
-    #status.success {
-      display: block;
-      background: #eef8f0;
-      color: #246b35;
-    }
-
-    #status.error {
-      display: block;
-      background: #fff0f0;
-      color: #a12622;
+      white-space: pre-line;
     }
 
     #status.loading {
       display: block;
       background: #f2f4f5;
       color: #555;
+    }
+
+    #status.success {
+      display: block;
+      background: #eaf8ee;
+      color: #166534;
+      border: 1px solid #86d39a;
+      font-weight: 700;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    #status.error {
+      display: block;
+      background: #fff0f0;
+      color: #a12622;
     }
 
     .notice {
@@ -150,7 +168,6 @@
 <body>
 
 <div class="container">
-
   <div class="card">
 
     <h1>カチプラス 初回登録</h1>
@@ -163,7 +180,6 @@
     <form id="registrationForm">
 
       <div class="field">
-
         <label for="fullName">
           氏名（フルネーム）
           <span class="required">必須</span>
@@ -176,11 +192,9 @@
           placeholder="例：山田　太郎"
           required
         >
-
       </div>
 
       <div class="field">
-
         <label for="department">
           所属部署
           <span class="required">必須</span>
@@ -192,11 +206,9 @@
           placeholder="例：営業部"
           required
         >
-
       </div>
 
       <div class="field">
-
         <label for="position">
           役職
           <span class="optional">任意</span>
@@ -207,13 +219,9 @@
           id="position"
           placeholder="例：部長（役職がない場合は空欄）"
         >
-
       </div>
 
-      <button
-        type="submit"
-        id="submitButton"
-      >
+      <button type="submit" id="submitButton">
         登録する
       </button>
 
@@ -222,23 +230,14 @@
     <div id="status"></div>
 
     <div class="notice">
-      ご登録いただいた情報は、
-      カチプラスの利用者確認および
+      ご登録いただいた情報は、カチプラスの利用者確認および
       サービス提供・運用のために使用します。
     </div>
 
   </div>
-
 </div>
 
-
 <script>
-
-  /*
-   * ==========================================
-   * カチプラス 初回登録 設定
-   * ==========================================
-   */
 
   const LIFF_ID =
     '2011714338-VDSzUV5O';
@@ -248,26 +247,18 @@
 
 
   const form =
-    document.getElementById(
-      'registrationForm'
-    );
+    document.getElementById('registrationForm');
 
   const submitButton =
-    document.getElementById(
-      'submitButton'
-    );
+    document.getElementById('submitButton');
 
   const statusBox =
-    document.getElementById(
-      'status'
-    );
+    document.getElementById('status');
 
 
-  /*
-   * ==========================================
-   * LIFF初期化
-   * ==========================================
-   */
+  /* ==============================
+     LINE認証
+     ============================== */
 
   async function initializeLiff() {
 
@@ -285,8 +276,7 @@
       if (!liff.isLoggedIn()) {
 
         liff.login({
-          redirectUri:
-            window.location.href
+          redirectUri: window.location.href
         });
 
         return;
@@ -296,7 +286,6 @@
         liff.getIDToken();
 
       if (!idToken) {
-
         throw new Error(
           'LINE認証情報を取得できませんでした。'
         );
@@ -321,11 +310,9 @@
   }
 
 
-  /*
-   * ==========================================
-   * 初回登録
-   * ==========================================
-   */
+  /* ==============================
+     初回登録
+     ============================== */
 
   form.addEventListener(
     'submit',
@@ -376,20 +363,22 @@
 
       try {
 
+        /* 登録中表示 */
+
         submitButton.disabled = true;
 
         submitButton.textContent =
           '登録中...';
+
+        submitButton.classList.add(
+          'processing'
+        );
 
         setStatus(
           '登録処理を行っています...',
           'loading'
         );
 
-
-        /*
-         * LINE IDトークン取得
-         */
 
         const idToken =
           liff.getIDToken();
@@ -403,18 +392,7 @@
         }
 
 
-        /*
-         * GASへ登録データ送信
-         *
-         * Google Apps ScriptのWebアプリは
-         * ContentServiceレスポンス時に
-         * 別ドメインへリダイレクトされるため、
-         * ブラウザ側ではレスポンス本文を待たない。
-         *
-         * 実際の登録完了は、
-         * GASから送信される
-         * 「登録完了LINE」で確認する。
-         */
+        /* GASへ送信 */
 
         await fetch(
           GAS_URL,
@@ -430,52 +408,43 @@
 
             body:
               JSON.stringify({
-
-                fullName:
-                  fullName,
-
-                department:
-                  department,
-
-                position:
-                  position,
-
-                idToken:
-                  idToken
-
+                fullName,
+                department,
+                position,
+                idToken
               })
           }
         );
 
 
-        /*
-         * 送信完了
-         */
+        /* 登録受付完了 */
+
+        submitButton.classList.remove(
+          'processing'
+        );
+
+        submitButton.classList.add(
+          'completed'
+        );
+
+        submitButton.textContent =
+          '✓ 登録受付完了';
 
         setStatus(
-          '登録を受け付けました。登録完了のLINEメッセージをご確認ください。',
+          '✓ 登録を受け付けました。\n登録完了のLINEメッセージをご確認ください。',
           'success'
         );
 
 
-        /*
-         * 二重送信防止
-         */
+        /* 二重送信防止 */
 
         form
           .querySelectorAll('input')
           .forEach(function(input) {
-
             input.disabled = true;
-
           });
 
-
-        submitButton.textContent =
-          '登録受付完了';
-
-        submitButton.disabled =
-          true;
+        submitButton.disabled = true;
 
 
       } catch (error) {
@@ -485,33 +454,25 @@
           error
         );
 
+        submitButton.classList.remove(
+          'processing'
+        );
+
+        submitButton.disabled = false;
+
+        submitButton.textContent =
+          '登録する';
 
         setStatus(
           '登録情報を送信できませんでした。通信環境をご確認のうえ、もう一度お試しください。',
           'error'
         );
-
-
-        submitButton.disabled =
-          false;
-
-        submitButton.textContent =
-          '登録する';
       }
     }
   );
 
 
-  /*
-   * ==========================================
-   * 表示制御
-   * ==========================================
-   */
-
-  function setStatus(
-    message,
-    type
-  ) {
+  function setStatus(message, type) {
 
     statusBox.textContent =
       message;
@@ -523,19 +484,11 @@
 
   function clearStatus() {
 
-    statusBox.textContent =
-      '';
+    statusBox.textContent = '';
 
-    statusBox.className =
-      '';
+    statusBox.className = '';
   }
 
-
-  /*
-   * ==========================================
-   * 起動
-   * ==========================================
-   */
 
   initializeLiff();
 
